@@ -1,7 +1,7 @@
 import json
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from app.models import NotableEvent, WeatherReading
@@ -178,6 +178,55 @@ class Storage:
         if row is None:
             return None
         return self._row_to_reading(row)
+
+    def get_reading_near_hours_before(
+        self,
+        city: str,
+        timestamp: datetime,
+        hours: float,
+        tolerance_hours: float = 1.5,
+    ) -> WeatherReading | None:
+        target = timestamp - timedelta(hours=hours)
+        window_start = target - timedelta(hours=tolerance_hours)
+        window_end = target + timedelta(hours=tolerance_hours)
+
+        with self._connect_readonly() as conn:
+            rows = conn.execute(
+                """
+                SELECT city, timestamp, weather_code, temperature_2m,
+                       apparent_temperature, precipitation, wind_speed_10m
+                FROM weather_readings
+                WHERE city = ? AND timestamp >= ? AND timestamp <= ?
+                ORDER BY timestamp ASC
+                """,
+                (city, self._to_iso(window_start), self._to_iso(window_end)),
+            ).fetchall()
+
+        if not rows:
+            return None
+
+        readings = [self._row_to_reading(row) for row in rows]
+        return min(
+            readings,
+            key=lambda reading: abs((reading.timestamp - target).total_seconds()),
+        )
+
+    def list_readings_in_range(
+        self, city: str, start: datetime, end: datetime
+    ) -> list[WeatherReading]:
+        with self._connect_readonly() as conn:
+            rows = conn.execute(
+                """
+                SELECT city, timestamp, weather_code, temperature_2m,
+                       apparent_temperature, precipitation, wind_speed_10m
+                FROM weather_readings
+                WHERE city = ? AND timestamp >= ? AND timestamp <= ?
+                ORDER BY timestamp ASC
+                """,
+                (city, self._to_iso(start), self._to_iso(end)),
+            ).fetchall()
+
+        return [self._row_to_reading(row) for row in rows]
 
     def save_event(self, event: NotableEvent) -> None:
         with self._connect() as conn:

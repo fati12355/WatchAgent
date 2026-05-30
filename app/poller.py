@@ -28,6 +28,13 @@ SINGLE_CITY_RULES: dict[str, list[SingleCityRule]] = {
     ],
 }
 
+ALL_CITY_LIFESTYLE_RULES: list[SingleCityRule] = [
+    event_rules.close_your_windows_wind,
+    event_rules.grill_or_chill_line,
+    event_rules.incoming_rain_humid_chill,
+    event_rules.sudden_muggy_shift_indoor_ac,
+]
+
 
 def poll_city(storage: Storage, city: str) -> WeatherReading | None:
     try:
@@ -66,7 +73,29 @@ def evaluate_single_city_rules(
         if event is not None:
             events.append(event)
 
+    for rule in ALL_CITY_LIFESTYLE_RULES:
+        event = rule(current, previous)
+        if event is not None:
+            events.append(event)
+
     event = event_rules.severe_microburst_thunderstorm_wind(current, previous)
+    if event is not None:
+        events.append(event)
+
+    reading_three_hours_ago = storage.get_reading_near_hours_before(
+        city, current.timestamp, 3.0
+    )
+    previous_three_hours_ago = (
+        storage.get_reading_near_hours_before(city, previous.timestamp, 3.0)
+        if previous is not None
+        else None
+    )
+    event = event_rules.grab_light_jacket_thermal_drop(
+        current,
+        previous,
+        reading_three_hours_ago,
+        previous_three_hours_ago,
+    )
     if event is not None:
         events.append(event)
 
@@ -110,6 +139,44 @@ def evaluate_cross_city_rules(storage: Storage) -> list[NotableEvent]:
         toronto_previous,
         ottawa,
         ottawa_previous,
+    )
+    if event is not None:
+        events.append(event)
+
+    toronto_before_previous = storage.get_reading_before(
+        "Toronto", toronto_previous.timestamp
+    )
+    event = event_rules.commuter_wind_corridor_toronto_to_ottawa(
+        toronto,
+        toronto_previous,
+        toronto_before_previous,
+        ottawa,
+    )
+    if event is not None:
+        events.append(event)
+
+    morning_start = toronto.timestamp.replace(hour=6, minute=0, second=0, microsecond=0)
+    toronto_morning_readings = storage.list_readings_in_range(
+        "Toronto",
+        morning_start,
+        toronto.timestamp,
+    )
+    toronto_previous_morning_readings = (
+        storage.list_readings_in_range(
+            "Toronto",
+            morning_start,
+            toronto_previous.timestamp,
+        )
+        if toronto_previous is not None
+        else []
+    )
+    event = event_rules.rainy_afternoon_shift_toronto_to_ottawa(
+        toronto,
+        toronto_previous,
+        toronto_morning_readings,
+        ottawa,
+        ottawa_previous,
+        toronto_previous_morning_readings,
     )
     if event is not None:
         events.append(event)
