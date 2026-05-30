@@ -4,18 +4,19 @@ A FastAPI service that polls [Open-Meteo](https://open-meteo.com/) for current w
 
 No API key is required for Open-Meteo.
 
-# Cursor setup
+## Cursor setup
 
-The .cursor directory was created to customize Cursor for this specific project rather than relying on generic AI assistance. 
+The `.cursor` directory customizes Cursor for this project rather than relying on generic AI assistance.
+
+```
 .cursor/
-    analyze_data.py 
-        provide executable tools that allow Cursor to interact with the project's data, including analyzing stored readings and events from the SQLite database.
-    rules/ 
-        this folder contains project-specific rules that define how weather readings, event generation, polling failures, logging, and data deduplication should be handled, ensuring that generated code follows the monitoring requirements of the system. 
-    
-    agents/ 
-        contains a specialized Event Reviewer agent responsible for reviewing alert logic and identifying potential false positives, false negatives, and edge cases in weather event detection. 
-        
+  analyze_data.py       # Tools to analyze stored readings and events from SQLite
+  rules/
+    event_rules.mdc     # Event detection and deduplication requirements
+    polling_rules.mdc   # Polling, retries, logging, and storage requirements
+  agents/
+    event_reviewer.md   # Event Reviewer agent for alert logic review
+```
 
 ## Monitored cities
 
@@ -39,7 +40,7 @@ GET https://api.open-meteo.com/v1/forecast
 
 | Method | Path        | Description |
 |--------|-------------|-------------|
-| GET    | `/health`   | Service health check |
+| GET    | `/health`   | Service health check (`status`, `readings_stored`, `events_stored`) |
 | GET    | `/readings` | Weather readings (optional `city`, `limit`; default limit 50) |
 | GET    | `/events`   | Notable events (optional `city`, `limit`; default limit 50) |
 
