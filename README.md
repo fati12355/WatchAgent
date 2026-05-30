@@ -4,6 +4,19 @@ A FastAPI service that polls [Open-Meteo](https://open-meteo.com/) for current w
 
 No API key is required for Open-Meteo.
 
+# Cursor setup
+
+The .cursor directory was created to customize Cursor for this specific project rather than relying on generic AI assistance. 
+.cursor/
+    analyze_data.py 
+        provide executable tools that allow Cursor to interact with the project's data, including analyzing stored readings and events from the SQLite database.
+    rules/ 
+        this folder contains project-specific rules that define how weather readings, event generation, polling failures, logging, and data deduplication should be handled, ensuring that generated code follows the monitoring requirements of the system. 
+    
+    agents/ 
+        contains a specialized Event Reviewer agent responsible for reviewing alert logic and identifying potential false positives, false negatives, and edge cases in weather event detection. 
+        
+
 ## Monitored cities
 
 | City      | Latitude | Longitude |
